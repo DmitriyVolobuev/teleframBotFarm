@@ -130,7 +130,9 @@ return [
 //        HelpCommand::class,
         StartCommand::class,
         \App\Commands\RendcomputerCommand::class,
-        \App\Commands\LanguageCallbackCommand::class,
+        \App\Commands\AccountCommand::class,
+        \App\Commands\HelpCommand::class,
+//        \App\Commands\LanguageCallbackCommand::class,
     ],
 
     /*

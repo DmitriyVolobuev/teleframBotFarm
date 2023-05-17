@@ -2,6 +2,7 @@
 
 namespace App\Commands;
 
+use App\Models\User;
 use Telegram\Bot\Commands\Command;
 use Illuminate\Support\Facades\Redis;
 use Telegram\Bot\Keyboard\Keyboard;
@@ -20,55 +21,60 @@ class StartCommand extends Command
 
         $userId = $this->getUpdate()->getMessage()->getFrom()->getId();
 
+        $firstName = $this->getUpdate()->getMessage()->getFrom()->getFirstName();
+
+        $username = $this->getUpdate()->getMessage()->getFrom()->getUsername();
+
+        $user = User::query()->firstOrCreate(
+            ['telegram_id' => $userId],
+            ['username' => $username, 'first_name' => $firstName, 'balance' => 0.00],
+        );
+        info($user);
+
         // Проверяем, есть ли уже сохраненный язык для пользователя
         $language = Redis::get("user_language:$userId");
 
         if (isset($language)) {
+
             // Если язык уже выбран, отправляем сообщение на выбранном языке
-            $this->sendWelcomeMessage($language);
-        } else {
-            // Если язык не выбран, отправляем сообщение с инлайн-клавиатурой для выбора языка
-            $this->replyWithMessage([
-                'text' => 'Выберите язык / Select language:',
-                'reply_markup' => Keyboard::make([
-                    'inline_keyboard' => [
-                        [
-                            ['text' => 'Русский', 'callback_data' => 'ru'],
-                            ['text' => 'English', 'callback_data' => 'en'],
-                        ],
+            $select_language = Lang::get('translations.selected_language', [], $language);
+            $info_message = Lang::get('translations.info_start', ['firstName' => $firstName], $language);
+            $button_message = Lang::get('translations.change', ['firstName' => $firstName], $language);
+
+            $buttons = Keyboard::make([
+                'inline_keyboard' => [
+                    [
+                        ['text' => $button_message, 'callback_data' => 'change'],
                     ],
-                ]),
+                ],
             ]);
-        }
-    }
 
-    private function sendWelcomeMessage($language)
-    {
+            $this->sendWelcomeMessage($info_message, $select_language, $buttons);
+        } else {
 
-//        $buttons = [
-//            [['text' => 'Русский', 'callback_data' => 'ru']],
-//            [['text' => 'English', 'callback_data' => 'en']],
-//            // Добавьте остальные кнопки из базы данных
-//        ];
-//
-//        $replyMarkup = Keyboard::make([
-//            'inline_keyboard' => $buttons,
-//        ]);
+            // Если язык не выбран, отправляем сообщение с инлайн-клавиатурой для выбора языка
+            $info_message = Lang::get('translations.info_start', ['firstName' => $firstName], $language);
+            $choose_language = Lang::get('translations.choose_language', ['firstName' => $firstName], $language);
 
-        $message = Lang::get('translations.selected_language', [], $language);
-        $info_message = Lang::get('translations.info_start', [], $language);
-//        info($message);
-
-        $this->replyWithMessage([
-            'text' => $info_message . "\n" . $message,
-            'reply_markup' => Keyboard::make([
+            $buttons = Keyboard::make([
                 'inline_keyboard' => [
                     [
                         ['text' => 'Русский', 'callback_data' => 'ru'],
                         ['text' => 'English', 'callback_data' => 'en'],
                     ],
                 ],
-            ]),
+            ]);
+
+            $this->sendWelcomeMessage($info_message, $choose_language, $buttons);
+        }
+    }
+
+    private function sendWelcomeMessage($info_message, $select_language, $buttons)
+    {
+
+        $this->replyWithMessage([
+            'text' => $info_message . "\n" . $select_language,
+            'reply_markup' => $buttons
         ]);
     }
 }

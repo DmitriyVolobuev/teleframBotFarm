@@ -2,8 +2,8 @@
 
 if (!function_exists('active_link')) {
 
-    function active_link(string $name, string $active = 'active'): string
+    function active_link(string $name): string
     {
-        return Route::is($name) ? $active : '';
+        return $name;
     }
 }

@@ -41,6 +41,7 @@ class WebhookController extends Controller
 //            }
         }
         if ($update->isType('callback_query')) {
+
             $callbackQuery = $update->getCallbackQuery();
 
             // Получение ID пользователя
@@ -81,9 +82,9 @@ class WebhookController extends Controller
             case 'en':
                 $message = 'You have chosen English language.';
                 break;
-            default:
-                $message = 'Выбран недопустимый язык.';
-                break;
+//            default:
+//                $message = 'Выбран недопустимый язык.';
+//                break;
         }
 
         $bot = $this->botsmanager->bot();
