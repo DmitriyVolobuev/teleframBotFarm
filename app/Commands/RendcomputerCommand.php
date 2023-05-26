@@ -26,6 +26,22 @@ class RendcomputerCommand extends Command
         if (isset($language)) {
             // Если язык уже выбран, отправляем сообщение на выбранном языке
             $this->sendRentMessage($language);
+        } else {
+
+            // Если язык не выбран, отправляем сообщение с инлайн-клавиатурой для выбора языка
+//            $info_message = Lang::get('translations.info_start', ['firstName' => $firstName], $language);
+            $choose_language = Lang::get('translations.choose_language', [], $language);
+
+            $buttons = Keyboard::make([
+                'inline_keyboard' => [
+                    [
+                        ['text' => 'Русский', 'callback_data' => 'ru'],
+                        ['text' => 'English', 'callback_data' => 'en'],
+                    ],
+                ],
+            ]);
+
+            $this->chooseWelcomeMessage($choose_language, $buttons);
         }
 
     }
@@ -37,9 +53,9 @@ class RendcomputerCommand extends Command
         $notification = Lang::get('translations.notification', [], $language);
 
         $buttons = [
-            [['text' => '🖥️ Rtx 3090', 'callback_data' => 'button1']],
-            [['text' => '🖥️ Rtx 4090', 'callback_data' => 'button2']],
-            [['text' => $notification, 'callback_data' => 'button2']],
+            [['text' => '🖥️ Rtx 3090', 'callback_data' => 'pc1']],
+            [['text' => '🖥️ Rtx 4090', 'callback_data' => 'pc2']],
+            [['text' => $notification, 'callback_data' => 'notification']],
             // Добавьте остальные кнопки из базы данных
         ];
 
@@ -50,6 +66,15 @@ class RendcomputerCommand extends Command
         $this->replyWithMessage([
             'text' => $message,
             'reply_markup' => $replyMarkup,
+        ]);
+    }
+
+    private function chooseWelcomeMessage($select_language, $buttons)
+    {
+
+        $this->replyWithMessage([
+            'text' => $select_language,
+            'reply_markup' => $buttons
         ]);
     }
 }

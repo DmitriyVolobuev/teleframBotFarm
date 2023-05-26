@@ -29,12 +29,12 @@ class StartCommand extends Command
             ['telegram_id' => $userId],
             ['username' => $username, 'first_name' => $firstName, 'balance' => 0.00],
         );
-        info($user);
+        info($user->active);
 
         // Проверяем, есть ли уже сохраненный язык для пользователя
         $language = Redis::get("user_language:$userId");
 
-        if (isset($language)) {
+        if (isset($language) && $user->active === 1) {
 
             // Если язык уже выбран, отправляем сообщение на выбранном языке
             $select_language = Lang::get('translations.selected_language', [], $language);
@@ -53,8 +53,8 @@ class StartCommand extends Command
         } else {
 
             // Если язык не выбран, отправляем сообщение с инлайн-клавиатурой для выбора языка
-            $info_message = Lang::get('translations.info_start', ['firstName' => $firstName], $language);
-            $choose_language = Lang::get('translations.choose_language', ['firstName' => $firstName], $language);
+//            $info_message = Lang::get('translations.info_start', ['firstName' => $firstName], $language);
+            $choose_language = Lang::get('translations.choose_language', [], $language);
 
             $buttons = Keyboard::make([
                 'inline_keyboard' => [
@@ -65,7 +65,7 @@ class StartCommand extends Command
                 ],
             ]);
 
-            $this->sendWelcomeMessage($info_message, $choose_language, $buttons);
+            $this->chooseWelcomeMessage($choose_language, $buttons);
         }
     }
 
@@ -74,6 +74,15 @@ class StartCommand extends Command
 
         $this->replyWithMessage([
             'text' => $info_message . "\n" . $select_language,
+            'reply_markup' => $buttons
+        ]);
+    }
+
+    private function chooseWelcomeMessage($select_language, $buttons)
+    {
+
+        $this->replyWithMessage([
+            'text' => $select_language,
             'reply_markup' => $buttons
         ]);
     }

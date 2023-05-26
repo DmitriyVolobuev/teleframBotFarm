@@ -132,6 +132,7 @@ return [
         \App\Commands\RendcomputerCommand::class,
         \App\Commands\AccountCommand::class,
         \App\Commands\HelpCommand::class,
+        \App\Commands\AdminCommand::class,
 //        \App\Commands\LanguageCallbackCommand::class,
     ],
 
