@@ -16,7 +16,7 @@ return new class extends Migration
             $table->bigInteger('telegram_id')->unique();
             $table->string('username')->nullable();
             $table->string('first_name')->nullable();
-            $table->decimal('balance')->unsigned();
+            $table->decimal('balance', 8, 2)->default(0.00);
             $table->boolean('active')->default(true);
             $table->boolean('admin')->default(false);
             $table->timestamps();

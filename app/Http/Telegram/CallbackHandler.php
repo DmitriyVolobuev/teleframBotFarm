@@ -2,10 +2,12 @@
 
 namespace App\Http\Telegram;
 
+use App\Http\Service\PaymentService;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Redis;
 use Telegram\Bot\BotsManager;
 use Telegram\Bot\Keyboard\Keyboard;
+use YooKassa\Client;
 
 
 class CallbackHandler
@@ -49,6 +51,7 @@ class CallbackHandler
 //        }
         $pc = 'pc1';
         switch ($data) {
+            // start
             case 'en':
             case 'ru':
                 $this->saveLanguage($bot, $telegramId, $messageId, $firstName,$data);
@@ -56,6 +59,8 @@ class CallbackHandler
             case 'change':
                 $this->changeLanguage($bot, $telegramId,$messageId, $language);
                 break;
+            // start
+
             // Account
             case 'pay':
 //                $this->arCallback->handle($callbackQuery);
@@ -67,6 +72,12 @@ class CallbackHandler
             case 'back_pay_account':
                 $this->backPayAccountCallback($bot, $telegramId, $messageId, $language);
                 break;
+
+            case '100':
+                $this->oneHundredCallback($bot, $telegramId, $language,);
+                break;
+            // Account
+
             // Rent pc
             case $pc:
                 $this->infoPcCallback($bot, $telegramId, $messageId, $language);
@@ -230,6 +241,33 @@ class CallbackHandler
             'message_id' => $messageId,
             'text' => $info_pay,
             'reply_markup' => $buttons,
+        ]);
+    }
+
+    private function oneHundredCallback($bot, $telegramId, $language)
+    {
+        $amount = 100;
+
+        $service = new PaymentService;
+
+        $discription = 'Пополнение баланса';
+
+        $paymentLink = $service->createPayment($amount, $discription, [
+            'user_id' => $telegramId,
+        ]);
+
+        $keyboard = [
+            'inline_keyboard' => [
+                [
+                    ['text' => 'Подтвердите пополнение', 'url' => $paymentLink]
+                ]
+            ]
+        ];
+
+        $bot->sendMessage([
+            'chat_id' => $telegramId,
+            'text' => '100р',
+            'reply_markup' => json_encode($keyboard)
         ]);
     }
 

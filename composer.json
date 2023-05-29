@@ -11,7 +11,8 @@
         "laravel/framework": "^10.8",
         "laravel/sanctum": "^3.2",
         "laravel/tinker": "^2.8",
-        "westacks/telebot": "^2.7"
+        "westacks/telebot": "^2.7",
+        "yoomoney/yookassa-sdk-php": "^2.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",
