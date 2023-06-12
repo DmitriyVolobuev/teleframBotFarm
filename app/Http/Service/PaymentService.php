@@ -12,6 +12,7 @@ use YooKassa\Common\Exceptions\NotFoundException;
 use YooKassa\Common\Exceptions\ResponseProcessingException;
 use YooKassa\Common\Exceptions\TooManyRequestsException;
 use YooKassa\Common\Exceptions\UnauthorizedException;
+use YooKassa\Model\NotificationEventType;
 use YooKassa\Model\Receipt;
 use YooKassa\Model\Receipt\PaymentMode;
 use YooKassa\Model\ReceiptItem;
@@ -20,7 +21,7 @@ use YooKassa\Model\ReceiptItem;
 class PaymentService
 {
 
-    private function getClient(): Client
+    public function getClient(): Client
     {
         $client = new Client();
         $client->setAuth(config('services.yookassa.shop_id'), config('services.yookassa.secret_key'));
@@ -74,12 +75,14 @@ class PaymentService
                 'capture' => false,
                 'description' => 'Пополнение баланса',
                 'metadata' => [
-//                    'transaction_id' => $option['transaction_id'],
+                    'transaction_id' => $option['transaction_id'],
                     'user_id' => $option['user_id'],
                 ],
             ],
             uniqid('', true) // Уникальный идентификатор платежа
         );
+
+
 
         return $paymentUrl = $payment->getConfirmation()->getConfirmationUrl();
     }

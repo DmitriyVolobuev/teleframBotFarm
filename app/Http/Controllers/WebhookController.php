@@ -27,17 +27,37 @@ class WebhookController extends Controller
 
         $update = $this->botsmanager->bot()->getWebhookUpdate();
 
-        if ($update->isType('message')) {
-            $message = $update->getMessage()->getText();
-            info($message);
-            // Обрабатываем полученное сообщение
-            // $message содержит информацию о входящем сообщении
+        function isTransactionValid($transactionId)
+        {
+            $pattern = '/^[a-f0-9]{64}$/i';
 
-            // Проверяем, является ли сообщение ответом на предыдущее сообщение
-//            if ($message->isReply()) {
-//                // Обрабатываем входящий ответ
-//            }
+            return preg_match($pattern, $transactionId);
         }
+
+        if ($update->isType('message')) {
+            $message = $update->getMessage();
+            info($message);
+
+            $user_id = $message->getFrom()->getId();
+            $chat_id = $message->getChat()->getId();
+            $transactionId = $message->getText();
+
+                // Проверяем номер транзакции на соответствие условиям
+                if (isTransactionValid($transactionId)) {
+                    // Номер транзакции прошел проверку
+                    $this->botsmanager->bot()->sendMessage([
+                        'chat_id' => $chat_id,
+                        'text' => 'Транзакция успешно прошла.',
+                    ]);
+                } else {
+                    // Номер транзакции не соответствует условиям
+                    $this->botsmanager->bot()->sendMessage([
+                        'chat_id' => $chat_id,
+                        'text' => 'Неверный номер транзакции. Попробуйте еще раз.',
+                    ]);
+                }
+        }
+
         if ($update->isType('callback_query')) {
 
             $callbackQuery = $update->getCallbackQuery();

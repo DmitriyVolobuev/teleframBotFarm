@@ -3,6 +3,7 @@
 namespace App\Http\Telegram;
 
 use App\Http\Service\PaymentService;
+use App\Models\Transaction;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Redis;
 use Telegram\Bot\BotsManager;
@@ -69,6 +70,9 @@ class CallbackHandler
             case 'yukassa':
                 $this->yukassaCallback($bot, $telegramId, $messageId, $language);
                 break;
+            case 'crypt':
+                $this->handleCryptCallback($bot, $telegramId, $messageId, $language);
+                break;
             case 'back_pay_account':
                 $this->backPayAccountCallback($bot, $telegramId, $messageId, $language);
                 break;
@@ -89,14 +93,18 @@ class CallbackHandler
             case 'pc_control':
                 $this->controlPcCallback($bot, $telegramId, $language);
                 break;
+            case 'admin_users':
+                $this->controllUserCallback($bot, $telegramId, $language);
+                break;
         }
         if (strpos($data, 'admin_pc') === 0)
         {
             $adminPcNumber = substr($data, strlen('admin_pc'));
-            info($adminPcNumber);
+//            info($adminPcNumber);
             $this->infoAdminControlCallback($bot, $telegramId, $messageId, $adminPcNumber);
         }
-        info($data);
+
+//        info($data);
 
     }
 
@@ -166,7 +174,7 @@ class CallbackHandler
     private function payCallback($bot, $telegramId, $language)
     {
 
-        info($language);
+//        info($language);
         $info_pay = Lang::get('translations.info_pay', [], $language);
 
         $button_yukassa = Lang::get('translations.pay_yukassa', [], $language);
@@ -220,6 +228,30 @@ class CallbackHandler
         ]);
     }
 
+    private function handleCryptCallback($bot, $telegramId, $messageId, $language)
+    {
+
+        $select_summ = Lang::get('translations.select_summ', [], $language);
+        $button_rub = Lang::get('translations.rub', [], $language);
+        $enter_amount = Lang::get('translations.enter_amount', [], $language);
+        $button_back = Lang::get('translations.back', [], $language);
+
+        $buttons = Keyboard::make([
+            'inline_keyboard' => [
+                [
+                    ['text' => $button_back, 'callback_data' => 'back_pay_account'],
+                ],
+            ],
+        ]);
+
+        $bot->editMessageText([
+            'chat_id' => $telegramId,
+            'message_id' => $messageId, // ID сообщения, которое нужно изменить
+            'text' => 'Введите номер транзакции',
+            'reply_markup' => $buttons
+        ]);
+    }
+
     private function backPayAccountCallback($bot, $telegramId, $messageId, $language)
     {
         $info_pay = Lang::get('translations.info_pay', [], $language);
@@ -252,9 +284,20 @@ class CallbackHandler
 
         $discription = 'Пополнение баланса';
 
-        $paymentLink = $service->createPayment($amount, $discription, [
-            'user_id' => $telegramId,
+        $transaction = Transaction::create([
+           'amount' =>  $amount,
+           'description' =>  $discription,
+           'user_id' => $telegramId,
         ]);
+
+        if ($transaction) {
+
+            $paymentLink = $service->createPayment($amount, $discription, [
+                'user_id' => $telegramId,
+                'transaction_id' => $transaction->id,
+            ]);
+
+        }
 
         $keyboard = [
             'inline_keyboard' => [
@@ -266,7 +309,7 @@ class CallbackHandler
 
         $bot->sendMessage([
             'chat_id' => $telegramId,
-            'text' => '100р',
+            'text' => '100 руб',
             'reply_markup' => json_encode($keyboard)
         ]);
     }
@@ -348,6 +391,26 @@ class CallbackHandler
         $bot->sendMessage([
             'chat_id' => $telegramId,
             'text' => 'Управление ПК',
+            'reply_markup' => $replyMarkup,
+        ]);
+    }
+
+    private function controllUserCallback($bot, $telegramId, $language)
+    {
+
+        $buttons = [
+            [['text' => 'Заблокировать', 'callback_data' => 'user_block'], ['text' => 'Начислить баланс', 'callback_data' => 'top_up_balance']],
+            [['text' => 'Назад', 'callback_data' => 'admin_pc2']],
+            // Добавьте остальные кнопки из базы данных
+        ];
+
+        $replyMarkup = Keyboard::make([
+            'inline_keyboard' => $buttons,
+        ]);
+
+        $bot->sendMessage([
+            'chat_id' => $telegramId,
+            'text' => 'Пользователи',
             'reply_markup' => $replyMarkup,
         ]);
     }

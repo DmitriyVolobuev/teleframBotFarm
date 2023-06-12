@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
+
             $table->id();
             $table->bigInteger('telegram_id')->unique();
             $table->string('username')->nullable();
