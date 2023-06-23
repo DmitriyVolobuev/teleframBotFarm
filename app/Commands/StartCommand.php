@@ -50,7 +50,7 @@ class StartCommand extends Command
             ]);
 
             $this->sendWelcomeMessage($info_message, $select_language, $buttons);
-        } else {
+        } elseif($user->active === 1) {
 
             // Если язык не выбран, отправляем сообщение с инлайн-клавиатурой для выбора языка
 //            $info_message = Lang::get('translations.info_start', ['firstName' => $firstName], $language);

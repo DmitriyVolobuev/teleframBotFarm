@@ -4,8 +4,11 @@ namespace App\Http\Telegram;
 
 use App\Http\Service\PaymentService;
 use App\Models\Transaction;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Redis;
+use Telegram\Bot\Actions;
 use Telegram\Bot\BotsManager;
 use Telegram\Bot\Keyboard\Keyboard;
 use YooKassa\Client;
@@ -25,12 +28,17 @@ class CallbackHandler
 
         $bot = $this->botsmanager->bot();
 
-        // Получите необходимые данные из $callbackQuery и выполните необходимые действия
-
         $data = $callbackQuery->getData();
+
+        $callbackId = $callbackQuery->getId();
 
         // Получение ID пользователя
         $telegramId = $callbackQuery->getFrom()->getId();
+
+        $user = User::where('telegram_id', $telegramId)
+            ->where('active', 1)
+            ->first();
+//        info($user);
 
         // Получение username пользователя
         $username = $callbackQuery->getFrom()->getUsername();
@@ -50,59 +58,89 @@ class CallbackHandler
 //        if ($data == 'ru' || $data == 'en') {
 //            $this->saveLanguage($telegramId, $data);
 //        }
-        $pc = 'pc1';
-        switch ($data) {
-            // start
-            case 'en':
-            case 'ru':
-                $this->saveLanguage($bot, $telegramId, $messageId, $firstName,$data);
-                break;
-            case 'change':
-                $this->changeLanguage($bot, $telegramId,$messageId, $language);
-                break;
-            // start
 
-            // Account
-            case 'pay':
+            $pc = 'pc1';
+            switch ($data) {
+                // start
+                case 'en':
+                case 'ru':
+                    $this->saveLanguage($bot, $telegramId, $messageId, $firstName, $data);
+                    break;
+                case 'change':
+                    $this->changeLanguage($bot, $telegramId, $messageId, $language);
+                    break;
+                // start
+
+                // Account
+                case 'pay':
 //                $this->arCallback->handle($callbackQuery);
-                $this->payCallback($bot, $telegramId, $language);
-                break;
-            case 'yukassa':
-                $this->yukassaCallback($bot, $telegramId, $messageId, $language);
-                break;
-            case 'crypt':
-                $this->handleCryptCallback($bot, $telegramId, $messageId, $language);
-                break;
-            case 'back_pay_account':
-                $this->backPayAccountCallback($bot, $telegramId, $messageId, $language);
-                break;
+                    $this->payCallback($bot, $telegramId, $language);
+                    break;
+                case 'yukassa':
+                    $this->yukassaCallback($bot, $telegramId, $messageId, $language);
+                    break;
+                case 'crypt':
+                    $this->handleCryptCallback($bot, $telegramId, $messageId, $language);
+                    break;
+                case 'back_pay_account':
+                    $this->backPayAccountCallback($bot, $telegramId, $messageId, $language);
+                    break;
+                case '100':
+                    $this->oneHundredCallback($bot, $telegramId, $language,);
+                    break;
+                // Account
 
-            case '100':
-                $this->oneHundredCallback($bot, $telegramId, $language,);
-                break;
-            // Account
+                // Rent pc
+                case $pc:
+                    $this->infoPcCallback($bot, $telegramId, $messageId, $language);
+                    break;
+                case 'back_pay_rent':
+                    $this->backRentCallback($bot, $telegramId, $messageId, $language);
+                    break;
 
-            // Rent pc
-            case $pc:
-                $this->infoPcCallback($bot, $telegramId, $messageId, $language);
-                break;
-            case 'back_pay_rent':
-                $this->backRentCallback($bot, $telegramId, $messageId, $language);
-                break;
-            // Admin
-            case 'pc_control':
-                $this->controlPcCallback($bot, $telegramId, $language);
-                break;
-            case 'admin_users':
-                $this->controllUserCallback($bot, $telegramId, $language);
-                break;
-        }
-        if (strpos($data, 'admin_pc') === 0)
-        {
-            $adminPcNumber = substr($data, strlen('admin_pc'));
+                // Admin
+                case 'pc_control':
+                    $this->controlPcCallback($bot, $telegramId, $language);
+                    break;
+                case 'user_control':
+                    $this->controllUserCallback($bot, $telegramId, $messageId, $language);
+                    break;
+                case 'admin_back':
+                    $this->backAdminCallback($bot, $telegramId, $messageId, $language);
+                    break;
+                case 'admin_back_users':
+                    $this->backAdminUserCallback($bot, $telegramId, $messageId, $language);
+                    break;
+            }
+            if (strpos($data, 'admin_pc') === 0) {
+                $adminPcNumber = substr($data, strlen('admin_pc'));
 //            info($adminPcNumber);
-            $this->infoAdminControlCallback($bot, $telegramId, $messageId, $adminPcNumber);
-        }
+                $this->infoAdminControlCallback($bot, $telegramId, $messageId, $adminPcNumber);
+            }
+
+            if (strpos($data, 'admin_user') === 0) {
+                $adminUserId = substr($data, strlen('admin_user'));
+//                info($adminPcNumber);
+                $this->adminUserControlCallback($bot, $telegramId, $messageId, $adminUserId, $firstName);
+            }
+
+            if (strpos($data, 'admin_accrue') === 0) {
+                $adminUserId = substr($data, strlen('admin_accrue'));
+//                info($adminPcNumber);
+                $this->adminUserAccrueCallback($bot, $telegramId, $messageId, $adminUserId, $firstName, $callbackId);
+            }
+
+            if (strpos($data, 'admin_banned_user') === 0) {
+                $adminUserId = substr($data, strlen('admin_banned_user'));
+//                info($adminPcNumber);
+                $this->adminUserBannedCallback($bot, $telegramId, $messageId, $adminUserId);
+            }
+
+            if (strpos($data, 'admin_unban_user') === 0) {
+                $adminUserId = substr($data, strlen('admin_unban_user'));
+//                info($adminPcNumber);
+                $this->adminUserUnbanCallback($bot, $telegramId, $messageId, $adminUserId);
+            }
 
 //        info($data);
 
@@ -246,7 +284,7 @@ class CallbackHandler
 
         $bot->editMessageText([
             'chat_id' => $telegramId,
-            'message_id' => $messageId, // ID сообщения, которое нужно изменить
+            'message_id' => $messageId,
             'text' => 'Введите номер транзакции',
             'reply_markup' => $buttons
         ]);
@@ -395,22 +433,28 @@ class CallbackHandler
         ]);
     }
 
-    private function controllUserCallback($bot, $telegramId, $language)
+    private function controllUserCallback($bot, $telegramId, $messageId, $language)
     {
+        $users = User::all();
 
-        $buttons = [
-            [['text' => 'Заблокировать', 'callback_data' => 'user_block'], ['text' => 'Начислить баланс', 'callback_data' => 'top_up_balance']],
-            [['text' => 'Назад', 'callback_data' => 'admin_pc2']],
-            // Добавьте остальные кнопки из базы данных
-        ];
+        $buttons = [];
+
+        foreach ($users as $user) {
+
+            $buttons[] = [['text' => $user->first_name, 'callback_data' => 'admin_user'.$user->telegram_id]];
+
+        }
+
+        $buttons[] = [['text' => 'Назад', 'callback_data' => 'admin_back']];
 
         $replyMarkup = Keyboard::make([
             'inline_keyboard' => $buttons,
         ]);
 
-        $bot->sendMessage([
+        $bot->editMessageText([
             'chat_id' => $telegramId,
-            'text' => 'Пользователи',
+            'message_id' => $messageId,
+            'text' => "Пользователи",
             'reply_markup' => $replyMarkup,
         ]);
     }
@@ -419,8 +463,8 @@ class CallbackHandler
     {
 
         $buttons = [
-            [['text' => 'Отключить', 'callback_data' => 'admin_pc1'], ['text' => 'Скидка', 'callback_data' => 'admin_pc2']],
-            [['text' => 'Назад', 'callback_data' => 'admin_pc2']],
+            [['text' => 'Отключить', 'callback_data' => 'disable_pc'], ['text' => 'Скидка', 'callback_data' => 'discount_pc']],
+            [['text' => 'Назад', 'callback_data' => 'admin_back']],
             // Добавьте остальные кнопки из базы данных
         ];
 
@@ -432,6 +476,140 @@ class CallbackHandler
             'chat_id' => $telegramId,
             'message_id' => $messageId,
             'text' => "Инфо о пк $adminPcNumber",
+            'reply_markup' => $replyMarkup,
+        ]);
+    }
+
+    private function adminUserControlCallback($bot, $telegramId, $messageId, $adminUserId, $firstName)
+    {
+
+        $user = User::where('telegram_id', $adminUserId)->first();
+
+        if ($user !== null) {
+            $firstName = $user->first_name;
+        } else $firstName = '';
+
+        $buttons = [
+            [['text' => 'Забанить', 'callback_data' => "admin_banned_user$adminUserId"], ['text' => 'Пополнить баланс', 'callback_data' => "admin_accrue$adminUserId"]],
+            [['text' => 'Разбанить', 'callback_data' => "admin_unban_user$adminUserId"]],
+            [['text' => 'Назад', 'callback_data' => 'admin_back_users']],
+            // Добавьте остальные кнопки из базы данных
+        ];
+
+        $replyMarkup = Keyboard::make([
+            'inline_keyboard' => $buttons,
+        ]);
+
+        $bot->editMessageText([
+            'chat_id' => $telegramId,
+            'message_id' => $messageId,
+            'text' => "Действие над пользователем: $firstName id: $adminUserId",
+            'reply_markup' => $replyMarkup,
+        ]);
+    }
+
+    private function adminUserAccrueCallback($bot, $telegramId, $messageId, $adminUserId, $firstName, $callbackId)
+    {
+        // Отправляем ответное сообщение пользователю
+        $bot->answerCallbackQuery([
+            'callback_query_id' => $callbackId,
+            'text' => "Введите сумму пополнения пользователю:",
+            'show_alert' => false,
+        ]);
+
+        // Задаем действие бота "ожидание ввода" для текущего пользователя
+        $bot->sendChatAction([
+            'chat_id' => $telegramId,
+            'action' => Actions::TYPING,
+        ]);
+    }
+
+    private function adminUserBannedCallback($bot, $telegramId, $messageId, $adminUserId)
+    {
+
+        $user = User::where('telegram_id', $adminUserId)->first();
+
+        $firstName = '';
+
+        if ($user !== null) {
+
+            $user->active = '0';
+            $user->save();
+
+            $firstName = $user->first_name;
+
+            $bot->sendMessage([
+                'chat_id' => $telegramId,
+                'text' => "Пользователь $firstName забанен",
+            ]);
+        }
+    }
+
+    private function adminUserUnbanCallback($bot, $telegramId, $messageId, $adminUserId)
+    {
+
+        $user = User::where('telegram_id', $adminUserId)->first();
+
+        $firstName = '';
+
+        if ($user !== null) {
+
+            $user->active = '1';
+            $user->save();
+
+            $firstName = $user->first_name;
+
+            $bot->sendMessage([
+                'chat_id' => $telegramId,
+                'text' => "Пользователь $firstName разбанен",
+            ]);
+        }
+    }
+
+    private function backAdminCallback($bot, $telegramId, $messageId, $language)
+    {
+
+        $buttons = [
+            [['text' => 'Статистика', 'callback_data' => 'statistics'], ['text' => 'Управление ПК', 'callback_data' => 'pc_control']],
+            [['text' => 'Пользователи', 'callback_data' => 'user_control']],
+            // Добавьте остальные кнопки из базы данных
+        ];
+
+        $replyMarkup = Keyboard::make([
+            'inline_keyboard' => $buttons,
+        ]);
+
+        $bot->editMessageText([
+            'chat_id' => $telegramId,
+            'message_id' => $messageId,
+            'text' => 'Админ панель',
+            'reply_markup' => $replyMarkup,
+        ]);
+    }
+
+    private function backAdminUserCallback($bot, $telegramId, $messageId, $language)
+    {
+
+        $users = User::all();
+
+        $buttons = [];
+
+        foreach ($users as $user) {
+
+            $buttons[] = [['text' => $user->first_name, 'callback_data' => 'admin_user'.$user->telegram_id]];
+
+        }
+
+        $buttons[] = [['text' => 'Назад', 'callback_data' => 'admin_back']];
+
+        $replyMarkup = Keyboard::make([
+            'inline_keyboard' => $buttons,
+        ]);
+
+        $bot->editMessageText([
+            'chat_id' => $telegramId,
+            'message_id' => $messageId,
+            'text' => "Пользователи",
             'reply_markup' => $replyMarkup,
         ]);
     }

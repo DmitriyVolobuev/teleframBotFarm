@@ -23,37 +23,40 @@ class AccountCommand extends Command
 
 //        $firstName = $this->getUpdate()->getMessage()->getFrom()->getFirstName();
 
-        $user = User::query()->where('telegram_id', $telegramId)->first();
+        $user = User::where('telegram_id', $telegramId)
+            ->where('active', 1)
+            ->first();
 
         if ($user) {
             $name = $user->first_name;
 
             $balance = $user->balance;
-        }
+
 //        info($balance);
 
-        // Проверяем, есть ли уже сохраненный язык для пользователя
-        $language = Redis::get("user_language:$telegramId");
+            // Проверяем, есть ли уже сохраненный язык для пользователя
+            $language = Redis::get("user_language:$telegramId");
 
-        if (isset($language)) {
-            // Если язык уже выбран, отправляем сообщение на выбранном языке
-            $this->sendAccountMessage($language, $name, $balance);
-        } else {
+            if (isset($language)) {
+                // Если язык уже выбран, отправляем сообщение на выбранном языке
+                $this->sendAccountMessage($language, $name, $balance);
+            } else {
 
-            // Если язык не выбран, отправляем сообщение с инлайн-клавиатурой для выбора языка
+                // Если язык не выбран, отправляем сообщение с инлайн-клавиатурой для выбора языка
 //            $info_message = Lang::get('translations.info_start', ['firstName' => $firstName], $language);
-            $choose_language = Lang::get('translations.choose_language', [], $language);
+                $choose_language = Lang::get('translations.choose_language', [], $language);
 
-            $buttons = Keyboard::make([
-                'inline_keyboard' => [
-                    [
-                        ['text' => 'Русский', 'callback_data' => 'ru'],
-                        ['text' => 'English', 'callback_data' => 'en'],
+                $buttons = Keyboard::make([
+                    'inline_keyboard' => [
+                        [
+                            ['text' => 'Русский', 'callback_data' => 'ru'],
+                            ['text' => 'English', 'callback_data' => 'en'],
+                        ],
                     ],
-                ],
-            ]);
+                ]);
 
-            $this->chooseWelcomeMessage($choose_language, $buttons);
+                $this->chooseWelcomeMessage($choose_language, $buttons);
+            }
         }
     }
 

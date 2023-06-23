@@ -2,6 +2,7 @@
 
 namespace App\Commands;
 
+use App\Models\User;
 use Telegram\Bot\Commands\Command;
 use Illuminate\Support\Facades\Redis;
 use Telegram\Bot\Keyboard\Keyboard;
@@ -20,14 +21,17 @@ class AdminCommand extends Command
 
         $userId = $this->getUpdate()->getMessage()->getFrom()->getId();
 
-        $firstName = $this->getUpdate()->getMessage()->getFrom()->getFirstName();
-
-        $username = $this->getUpdate()->getMessage()->getFrom()->getUsername();
+        $user = User::where('telegram_id', $userId)
+            ->where('active', 1)
+            ->where('admin', 1)
+            ->first();
 
         // Проверяем, есть ли уже сохраненный язык для пользователя
         $language = Redis::get("user_language:$userId");
 
-        $this->chooseWelcomeMessage();
+        if ($user) {
+            $this->chooseWelcomeMessage();
+        }
 
     }
 
@@ -36,7 +40,7 @@ class AdminCommand extends Command
 
         $buttons = [
             [['text' => 'Статистика', 'callback_data' => 'statistics'], ['text' => 'Управление ПК', 'callback_data' => 'pc_control']],
-            [['text' => 'Пользователи', 'callback_data' => 'admin_users']],
+            [['text' => 'Пользователи', 'callback_data' => 'user_control']],
             // Добавьте остальные кнопки из базы данных
         ];
 

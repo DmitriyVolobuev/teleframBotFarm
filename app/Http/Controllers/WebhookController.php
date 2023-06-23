@@ -27,6 +27,7 @@ class WebhookController extends Controller
 
         $update = $this->botsmanager->bot()->getWebhookUpdate();
 
+        // Проверка Хэша транзакции
         function isTransactionValid($transactionId)
         {
             $pattern = '/^[a-f0-9]{64}$/i';
@@ -36,12 +37,12 @@ class WebhookController extends Controller
 
         if ($update->isType('message')) {
             $message = $update->getMessage();
-            info($message);
 
             $user_id = $message->getFrom()->getId();
             $chat_id = $message->getChat()->getId();
             $transactionId = $message->getText();
 
+            if (isTransactionValid($transactionId)) {
                 // Проверяем номер транзакции на соответствие условиям
                 if (isTransactionValid($transactionId)) {
                     // Номер транзакции прошел проверку
@@ -56,6 +57,7 @@ class WebhookController extends Controller
                         'text' => 'Неверный номер транзакции. Попробуйте еще раз.',
                     ]);
                 }
+            }
         }
 
         if ($update->isType('callback_query')) {
