@@ -29,9 +29,7 @@ class AdminCommand extends Command
         // Проверяем, есть ли уже сохраненный язык для пользователя
         $language = Redis::get("user_language:$userId");
 
-        if ($user) {
-            $this->chooseWelcomeMessage();
-        }
+        if ($user) $this->chooseWelcomeMessage();
 
     }
 

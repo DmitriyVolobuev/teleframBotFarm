@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Telegram\CallbackHandler;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Telegram\Bot\BotsManager;
 
 class WebhookController extends Controller
@@ -22,6 +23,7 @@ class WebhookController extends Controller
      */
     public function __invoke(Request $request)
     {
+
         $webhook = $this->botsmanager->bot()
             ->commandsHandler(true);
 
@@ -61,9 +63,12 @@ class WebhookController extends Controller
         }
 
         if ($update->isType('callback_query')) {
-
-            $callbackQuery = $update->getCallbackQuery();
-            $this->callbackHandler->handle($callbackQuery);
+            try {
+                $callbackQuery = $update->getCallbackQuery();
+                $this->callbackHandler->handle($callbackQuery);
+            } catch (\Exception $exception) {
+                Log::error('Callback Query Exception: ' . $exception->getMessage());
+            }
 
 //            // Получение ID пользователя
 //            $userId = $callbackQuery->getFrom()->getId();

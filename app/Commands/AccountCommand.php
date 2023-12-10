@@ -27,6 +27,8 @@ class AccountCommand extends Command
             ->where('active', 1)
             ->first();
 
+        //if (!$user) return;
+
         if ($user) {
             $name = $user->first_name;
 
